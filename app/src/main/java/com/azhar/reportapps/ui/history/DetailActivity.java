@@ -10,12 +10,8 @@ import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.view.animation.OvershootInterpolator;
 import android.widget.ImageView;
-import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.util.Base64;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
@@ -24,8 +20,10 @@ import androidx.lifecycle.ViewModelProvider;
 
 import com.azhar.reportapps.R;
 import com.azhar.reportapps.model.ModelDatabase;
-import com.azhar.reportapps.viewmodel.HistoryViewModel; // Pastikan import ViewModel benar
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.google.android.material.button.MaterialButton;
+import com.azhar.reportapps.viewmodel.HistoryViewModel;
 
 public class DetailActivity extends AppCompatActivity {
 
@@ -33,12 +31,12 @@ public class DetailActivity extends AppCompatActivity {
     CardView cvInfoUtama;
     ImageView imgBuktiDetail;
 
-    // Timeline Components
+    // Komponen Timeline
     ImageView imgStep1, imgStep2, imgStep3;
     View line1, line2;
     TextView tvTextStep2, tvTextStep3, tvDescStep2;
 
-    // Loading Animation
+    // Animasi Loading
     View containerStep2;
     ImageView imgStep2Static, imgStep2Loading;
 
@@ -59,7 +57,7 @@ public class DetailActivity extends AppCompatActivity {
             getSupportActionBar().setTitle("");
         }
 
-        // Load animasi
+        // Load animasi putar
         rotateAnimation = AnimationUtils.loadAnimation(this, R.anim.rotate_infinite);
 
         // Inisialisasi ViewModel
@@ -95,38 +93,42 @@ public class DetailActivity extends AppCompatActivity {
         btnCekStatus = findViewById(R.id.btnCekStatus);
 
         btnCekStatus.setOnClickListener(v -> {
+            if (modelDatabase == null) return;
+
+            // Animasi menghilangkan card info agar fokus ke timeline
             cvInfoUtama.animate().alpha(0f).translationY(-100).setDuration(500).withEndAction(() -> cvInfoUtama.setVisibility(View.GONE)).start();
 
-            Toast.makeText(this, "Menghubungkan ke server...", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Menghubungkan ke Cloud...", Toast.LENGTH_SHORT).show();
             btnCekStatus.setEnabled(false);
             btnCekStatus.setText("Memproses...");
 
-            // TIMER 1 (5 Detik) -> Sedang Ditangani
+            // --- SIMULASI UPDATE STATUS KE FIREBASE ---
+
+            // TIMER 1 (5 Detik) -> Update status ke "Proses"
             new Handler(Looper.getMainLooper()).postDelayed(() -> {
                 animateStep(2);
-                // Update Status di Database
-                if (modelDatabase != null) {
-                    historyViewModel.updateStatusLaporan(modelDatabase.getUid(), "Proses");
-                }
+                // Update di Firestore (UID String)
+                historyViewModel.updateStatusLaporan(modelDatabase.getUid(), "Proses");
             }, 5000);
 
-            // TIMER 2 (15 Detik) -> Selesai
+            // TIMER 2 (15 Detik) -> Update status ke "Selesai"
             new Handler(Looper.getMainLooper()).postDelayed(() -> {
                 animateStep(3);
                 btnCekStatus.setText("Selesai");
                 btnCekStatus.setBackgroundColor(Color.parseColor("#10B981"));
 
-                // Update Status Selesai di Database
-                if (modelDatabase != null) {
-                    historyViewModel.updateStatusLaporan(modelDatabase.getUid(), "Selesai");
-                }
-                Toast.makeText(DetailActivity.this, "Laporan Selesai!", Toast.LENGTH_LONG).show();
+                // Update di Firestore (UID String)
+                historyViewModel.updateStatusLaporan(modelDatabase.getUid(), "Selesai");
+
+                Toast.makeText(DetailActivity.this, "Laporan Selesai & Terupdate di Server!", Toast.LENGTH_LONG).show();
             }, 15000);
         });
     }
 
     private void setData() {
+        // Ambil data yang dikirim dari Activity sebelumnya
         modelDatabase = (ModelDatabase) getIntent().getSerializableExtra("DATA_LAPORAN");
+
         if (modelDatabase != null) {
             tvTitle.setText(modelDatabase.getKategori());
             tvLokasi.setText(modelDatabase.getLokasi());
@@ -134,24 +136,24 @@ public class DetailActivity extends AppCompatActivity {
             tvTanggal.setText(modelDatabase.getTanggal());
             tvWaktu.setText(modelDatabase.getTanggal());
 
-            // Load Foto
-            if (modelDatabase.getFoto() != null && !modelDatabase.getFoto().isEmpty() && !modelDatabase.getFoto().equals("foto_dummy_base64")) {
-                try {
-                    byte[] decodedString = Base64.decode(modelDatabase.getFoto(), Base64.DEFAULT);
-                    Bitmap decodedByte = BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length);
-                    imgBuktiDetail.setImageBitmap(decodedByte);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+            // --- BAGIAN INI PENTING: LOAD FOTO DENGAN GLIDE ---
+            // Karena data 'getFoto()' sekarang adalah URL (String), bukan Base64.
+            if (modelDatabase.getFoto() != null && !modelDatabase.getFoto().isEmpty()) {
+                Glide.with(this)
+                        .load(modelDatabase.getFoto()) // Load URL dari Firebase
+                        .diskCacheStrategy(DiskCacheStrategy.ALL) // Cache agar hemat kuota
+                        .placeholder(R.drawable.ic_image_upload) // Gambar sementara loading
+                        .error(R.drawable.ic_image_upload) // Gambar jika gagal load
+                        .into(imgBuktiDetail);
             }
 
-            // Cek Status
+            // Cek Status untuk mengatur tampilan timeline saat pertama dibuka
             String status = modelDatabase.getStatus();
-            if (status != null && status.equals("Selesai")) {
+            if (status != null && status.equalsIgnoreCase("Selesai")) {
                 animateStep(3);
                 btnCekStatus.setVisibility(View.GONE);
-                cvInfoUtama.setVisibility(View.GONE); // Sembunyikan card info kalau sudah selesai
-            } else if (status != null && (status.equals("Proses") || status.equals("Diproses"))) {
+                cvInfoUtama.setVisibility(View.GONE);
+            } else if (status != null && (status.equalsIgnoreCase("Proses") || status.equalsIgnoreCase("Ditangani"))) {
                 animateStep(2);
             } else {
                 animateStep(1);
@@ -169,24 +171,30 @@ public class DetailActivity extends AppCompatActivity {
         if (step == 1) {
             tvStatus.setText("Baru");
             tvStatus.setTextColor(colorBlue);
+
             imgStep1.setImageResource(R.drawable.ic_modern_check);
             imgStep1.setColorFilter(colorBlue);
             line1.setBackgroundColor(colorGray);
+
             imgStep2Loading.clearAnimation();
             imgStep2Loading.setVisibility(View.GONE);
             imgStep2Static.setVisibility(View.VISIBLE);
             imgStep2Static.setColorFilter(colorTextInactive);
             tvTextStep2.setTextColor(colorTextInactive);
+
             line2.setBackgroundColor(colorGray);
 
         } else if (step == 2) {
             tvStatus.setText("Sedang Ditangani");
             tvStatus.setTextColor(Color.parseColor("#F59E0B"));
+
             imgStep1.setColorFilter(colorGreen);
             line1.setBackgroundColor(colorBlue);
+
             imgStep2Static.setVisibility(View.GONE);
             imgStep2Loading.setVisibility(View.VISIBLE);
             imgStep2Loading.startAnimation(rotateAnimation);
+
             tvTextStep2.setTextColor(colorTextActive);
             tvDescStep2.setTextColor(colorBlue);
             tvDescStep2.setText("Petugas sedang menuju lokasi...");
@@ -194,19 +202,24 @@ public class DetailActivity extends AppCompatActivity {
         } else if (step == 3) {
             tvStatus.setText("Selesai");
             tvStatus.setTextColor(colorGreen);
+
             line1.setBackgroundColor(colorGreen);
             imgStep1.setColorFilter(colorGreen);
+
             imgStep2Loading.clearAnimation();
             imgStep2Loading.setVisibility(View.GONE);
             imgStep2Static.setVisibility(View.VISIBLE);
             imgStep2Static.setImageResource(R.drawable.ic_modern_check);
             imgStep2Static.setColorFilter(null);
+
             line2.setBackgroundColor(colorGreen);
             tvTextStep2.setTextColor(colorTextActive);
             tvDescStep2.setText("Penanganan selesai.");
+
             imgStep3.setImageResource(R.drawable.ic_modern_check);
             imgStep3.setColorFilter(null);
             tvTextStep3.setTextColor(colorTextActive);
+
             imgStep3.setScaleX(0f); imgStep3.setScaleY(0f);
             imgStep3.animate().scaleX(1f).scaleY(1f).setInterpolator(new OvershootInterpolator()).setDuration(500).start();
         }

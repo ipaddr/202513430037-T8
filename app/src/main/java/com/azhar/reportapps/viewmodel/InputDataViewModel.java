@@ -1,51 +1,84 @@
 package com.azhar.reportapps.viewmodel;
 
 import android.app.Application;
+import android.util.Base64;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
 
-import com.azhar.reportapps.database.DatabaseClient;
-import com.azhar.reportapps.database.dao.DatabaseDao;
 import com.azhar.reportapps.model.ModelDatabase;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
+import com.google.firebase.storage.UploadTask;
 
-import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers;
-import io.reactivex.rxjava3.core.Completable;
-import io.reactivex.rxjava3.schedulers.Schedulers;
+import java.util.UUID;
 
 public class InputDataViewModel extends AndroidViewModel {
 
-    private DatabaseDao databaseDao;
+    private FirebaseFirestore db;
+    private StorageReference storageRef;
+    private FirebaseAuth mAuth;
 
     public InputDataViewModel(@NonNull Application application) {
         super(application);
-        databaseDao = DatabaseClient.getInstance(application).getAppDatabase().databaseDao();
+        db = FirebaseFirestore.getInstance();
+        storageRef = FirebaseStorage.getInstance().getReference();
+        mAuth = FirebaseAuth.getInstance();
     }
 
-    public void addLaporan(final String kategori, final String image,
+    public void addLaporan(final String kategori, final String base64Image,
                            final String namaPelapor, final String lokasi,
                            final String tanggal, final String isiLaporan,
                            final String telepon) {
 
-        Completable.fromAction(() -> {
-                    ModelDatabase modelDatabase = new ModelDatabase();
+        Toast.makeText(getApplication(), "Mengupload foto & data...", Toast.LENGTH_SHORT).show();
 
-                    modelDatabase.kategori = kategori;
-                    modelDatabase.foto = image; // Ini sekarang menyimpan Base64 String panjang
-                    modelDatabase.lokasi = lokasi;
-                    modelDatabase.tanggal = tanggal;
+        // 1. Upload Foto ke Firebase Storage
+        // Kita ubah Base64 kembali ke byte array untuk diupload
+        String path = "images/" + UUID.randomUUID().toString() + ".jpg";
+        StorageReference imageRef = storageRef.child(path);
 
-                    // Gabungkan data pelapor ke deskripsi biar simple
-                    String laporanLengkap = isiLaporan + "\n\n(Pelapor: " + namaPelapor + " - " + telepon + ")";
-                    modelDatabase.isiLaporan = laporanLengkap;
+        byte[] data = Base64.decode(base64Image, Base64.DEFAULT);
 
-                    // Set default status
-                    modelDatabase.status = "Baru";
+        UploadTask uploadTask = imageRef.putBytes(data);
+        uploadTask.addOnSuccessListener(taskSnapshot -> {
+            // 2. Ambil URL Download Foto
+            imageRef.getDownloadUrl().addOnSuccessListener(uri -> {
+                String downloadUrl = uri.toString();
+                // 3. Simpan Data ke Firestore
+                saveToFirestore(kategori, downloadUrl, namaPelapor, lokasi, tanggal, isiLaporan, telepon);
+            });
+        }).addOnFailureListener(e -> {
+            Toast.makeText(getApplication(), "Gagal upload foto: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        });
+    }
 
-                    databaseDao.insertData(modelDatabase);
+    private void saveToFirestore(String kategori, String fotoUrl, String nama, String lokasi, String tanggal, String isi, String telp) {
+        String uid = db.collection("laporan").document().getId(); // Generate ID unik
+        String userId = (mAuth.getCurrentUser() != null) ? mAuth.getCurrentUser().getUid() : "guest";
+
+        ModelDatabase laporan = new ModelDatabase();
+        laporan.setUid(uid);
+        laporan.setIdUser(userId);
+        laporan.setKategori(kategori);
+        laporan.setFoto(fotoUrl); // Simpan URL
+        laporan.setNamaPelapor(nama);
+        laporan.setLokasi(lokasi);
+        laporan.setTanggal(tanggal);
+        laporan.setIsiLaporan(isi);
+        laporan.setTelepon(telp);
+        laporan.setStatus("Baru");
+
+        db.collection("laporan").document(uid)
+                .set(laporan)
+                .addOnSuccessListener(aVoid -> {
+                    Toast.makeText(getApplication(), "Laporan Berhasil Terkirim!", Toast.LENGTH_LONG).show();
                 })
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe();
+                .addOnFailureListener(e -> {
+                    Toast.makeText(getApplication(), "Gagal kirim data: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                });
     }
 }

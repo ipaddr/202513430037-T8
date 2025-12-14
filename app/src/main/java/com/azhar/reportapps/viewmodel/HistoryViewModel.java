@@ -1,52 +1,64 @@
 package com.azhar.reportapps.viewmodel;
 
 import android.app.Application;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
+import androidx.lifecycle.MutableLiveData;
 
-import com.azhar.reportapps.database.DatabaseClient;
-import com.azhar.reportapps.database.dao.DatabaseDao;
 import com.azhar.reportapps.model.ModelDatabase;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.Query;
 
+import java.util.ArrayList;
 import java.util.List;
-
-import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers;
-import io.reactivex.rxjava3.core.Completable;
-import io.reactivex.rxjava3.schedulers.Schedulers;
 
 public class HistoryViewModel extends AndroidViewModel {
 
-    private LiveData<List<ModelDatabase>> dataLaporan;
-    private DatabaseDao databaseDao;
+    private MutableLiveData<List<ModelDatabase>> dataLaporan = new MutableLiveData<>();
+    private FirebaseFirestore db;
 
     public HistoryViewModel(@NonNull Application application) {
         super(application);
-
-        // Inisialisasi Database
-        databaseDao = DatabaseClient.getInstance(application).getAppDatabase().databaseDao();
-        dataLaporan = databaseDao.getAllLaporan();
+        db = FirebaseFirestore.getInstance();
+        loadDataLaporan();
     }
 
     public LiveData<List<ModelDatabase>> getDataLaporan() {
         return dataLaporan;
     }
 
-    // Method Hapus Data (Pakai RxJava agar aplikasi tidak macet)
-    public void deleteDataById(int uid) {
-        Completable.fromAction(() -> databaseDao.deleteLaporan(uid))
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe();
+    private void loadDataLaporan() {
+        db.collection("laporan")
+                .orderBy("tanggal", Query.Direction.DESCENDING)
+                .addSnapshotListener((value, error) -> {
+                    if (error != null) {
+                        Log.e("Firestore", "Listen failed.", error);
+                        return;
+                    }
+
+                    if (value != null) {
+                        List<ModelDatabase> list = new ArrayList<>();
+                        for (DocumentSnapshot doc : value.getDocuments()) {
+                            ModelDatabase model = doc.toObject(ModelDatabase.class);
+                            if (model != null) {
+                                model.setUid(doc.getId());
+                                list.add(model);
+                            }
+                        }
+                        dataLaporan.setValue(list);
+                    }
+                });
     }
 
-    // --- METHOD BARU: UNTUK UPDATE STATUS ---
-    // (Ini yang tadi menyebabkan error "cannot find symbol")
-    public void updateStatusLaporan(int uid, String status) {
-        Completable.fromAction(() -> databaseDao.updateStatus(uid, status))
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe();
+    public void deleteDataById(String uid) {
+        db.collection("laporan").document(uid).delete();
+    }
+
+    public void updateStatusLaporan(String uid, String status) {
+        db.collection("laporan").document(uid).update("status", status);
     }
 }

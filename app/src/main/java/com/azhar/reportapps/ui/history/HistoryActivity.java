@@ -11,12 +11,17 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.lifecycle.Observer;
-import androidx.lifecycle.ViewModelProvider; // <--- Perhatikan ini yang BARU
+import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.azhar.reportapps.R;
 import com.azhar.reportapps.model.ModelDatabase;
+import com.azhar.reportapps.viewmodel.HistoryViewModel;
+
+
+// --- BARIS PENTING YANG HILANG TADI ---
+// --------------------------------------
 
 import java.util.ArrayList;
 import java.util.List;
@@ -62,14 +67,14 @@ public class HistoryActivity extends AppCompatActivity implements HistoryAdapter
     }
 
     private void setViewModel() {
-        // --- PERBAIKAN UTAMA DI SINI ---
-        // Kode lama: ViewModelProviders.of(this)... (Error)
-        // Kode baru: new ViewModelProvider(this)... (Benar)
+        // Inisialisasi ViewModel
         historyViewModel = new ViewModelProvider(this).get(HistoryViewModel.class);
 
+        // Observasi data dari Firebase (Realtime)
         historyViewModel.getDataLaporan().observe(this, new Observer<List<ModelDatabase>>() {
             @Override
             public void onChanged(List<ModelDatabase> modelDatabases) {
+                // Cek apakah data ada?
                 if (modelDatabases.size() != 0) {
                     historyAdapter.setData(modelDatabases);
                     tvNotFound.setVisibility(View.GONE);
@@ -82,7 +87,7 @@ public class HistoryActivity extends AppCompatActivity implements HistoryAdapter
         });
     }
 
-    // --- IMPLEMENTASI INTERFACE DARI ADAPTER ---
+    // --- FITUR HAPUS DATA (CALLBACK DARI ADAPTER) ---
     @Override
     public void onDelete(ModelDatabase modelDatabase) {
         AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(this);
@@ -90,9 +95,9 @@ public class HistoryActivity extends AppCompatActivity implements HistoryAdapter
         alertDialogBuilder.setPositiveButton("Ya, Hapus", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialogInterface, int i) {
-                // Panggil method delete di ViewModel
+                // Panggil method delete di ViewModel (UID sekarang String)
                 historyViewModel.deleteDataById(modelDatabase.getUid());
-                Toast.makeText(HistoryActivity.this, "Data yang dipilih sudah dihapus", Toast.LENGTH_SHORT).show();
+                Toast.makeText(HistoryActivity.this, "Data berhasil dihapus dari Cloud", Toast.LENGTH_SHORT).show();
             }
         });
         alertDialogBuilder.setNegativeButton("Batal", new DialogInterface.OnClickListener() {
