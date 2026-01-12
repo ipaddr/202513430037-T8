@@ -2,24 +2,26 @@
 <androidx.coordinatorlayout.widget.CoordinatorLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F5F5F5"
-    android:fitsSystemWindows="true">
+    android:background="@android:color/white"
+    tools:context=".ui.history.DetailActivity">
 
     <com.google.android.material.appbar.AppBarLayout
+        android:id="@+id/appBar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/white"
-        app:elevation="0dp">
+        android:theme="@style/Theme.AppCompat.Light.DarkActionBar">
 
         <androidx.appcompat.widget.Toolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
-            app:navigationIcon="@drawable/ic_back"
+            android:background="@color/purple_500"
             app:title="Detail Laporan"
-            app:titleTextColor="@color/black" />
+            app:titleTextColor="@android:color/white"
+            app:navigationIcon="@drawable/ic_back" />
 
     </com.google.android.material.appbar.AppBarLayout>
 
@@ -32,268 +34,262 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="24dp"
-            android:clipToPadding="false">
+            android:padding="16dp">
+
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="4dp"
+                android:layout_marginBottom="16dp">
+
+                <ImageView
+                    android:id="@+id/imgBuktiDetail"
+                    android:layout_width="match_parent"
+                    android:layout_height="250dp"
+                    android:scaleType="centerCrop"
+                    android:src="@drawable/ic_image_upload" />
+            </androidx.cardview.widget.CardView>
+
+            <TextView
+                android:id="@+id/tvTitleDetail"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Kategori Laporan"
+                android:textSize="22sp"
+                android:textStyle="bold"
+                android:textColor="@android:color/black"
+                android:layout_marginBottom="8dp" />
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="16dp"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:id="@+id/tvStatusDetail"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Menunggu"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="12dp"
+                    android:paddingTop="4dp"
+                    android:paddingBottom="4dp"
+                    android:textColor="@android:color/white"
+                    android:background="@drawable/bg_status_blue"/>
+            </LinearLayout>
 
             <androidx.cardview.widget.CardView
                 android:id="@+id/cvInfoUtama"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="4dp"
-                app:cardBackgroundColor="@color/white">
+                app:cardCornerRadius="8dp"
+                app:cardElevation="2dp"
+                app:cardBackgroundColor="#F8F9FA"
+                android:layout_marginBottom="24dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="20dp">
+                    android:padding="16dp">
 
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal">
+                        android:orientation="horizontal"
+                        android:layout_marginBottom="8dp">
 
-                        <androidx.cardview.widget.CardView
-                            android:layout_width="50dp"
-                            android:layout_height="50dp"
-                            app:cardBackgroundColor="#FFF9C4"
-                            app:cardCornerRadius="12dp"
-                            app:cardElevation="0dp">
-                            <ImageView
-                                android:layout_width="24dp"
-                                android:layout_height="24dp"
-                                android:layout_gravity="center"
-                                android:src="@drawable/ic_info"
-                                app:tint="#FBC02D"/>
-                        </androidx.cardview.widget.CardView>
-
-                        <LinearLayout
+                        <ImageView android:layout_width="20dp" android:layout_height="20dp" android:src="@drawable/ic_location" app:tint="@color/purple_500"/>
+                        <TextView
+                            android:id="@+id/tvLokasiDetail"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="16dp"
-                            android:orientation="vertical">
-                            <TextView
-                                android:id="@+id/tvTitleDetail"
-                                android:text="Kategori"
-                                android:textSize="18sp"
-                                android:textStyle="bold"
-                                android:textColor="#111827"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"/>
-
-                            <TextView
-                                android:id="@+id/tvStatusDetail"
-                                android:text="Menunggu..."
-                                android:textSize="12sp"
-                                android:textStyle="bold"
-                                android:textColor="#2563EB"
-                                android:background="@drawable/bg_status_blue"
-                                android:paddingHorizontal="10dp"
-                                android:paddingVertical="4dp"
-                                android:layout_marginTop="6dp"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"/>
-                        </LinearLayout>
+                            android:layout_marginStart="8dp"
+                            android:text="Lokasi Kejadian"
+                            android:textColor="#333333" />
                     </LinearLayout>
 
-                    <View
+                    <LinearLayout
                         android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:background="#F3F4F6"
-                        android:layout_marginVertical="20dp"/>
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:layout_marginBottom="8dp">
 
-                    <TextView text="LOKASI" android:textSize="11sp" android:textStyle="bold" android:textColor="#9CA3AF" android:letterSpacing="0.05" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
-                    <TextView android:id="@+id/tvLokasiDetail" android:text="-" android:textSize="15sp" android:textColor="#374151" android:layout_marginTop="4dp" android:layout_marginBottom="16dp" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
-
-                    <TextView text="TANGGAL" android:textSize="11sp" android:textStyle="bold" android:textColor="#9CA3AF" android:letterSpacing="0.05" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
-                    <TextView android:id="@+id/tvTanggalDetail" android:text="-" android:textSize="15sp" android:textColor="#374151" android:layout_marginTop="4dp" android:layout_marginBottom="16dp" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
-
-                    <TextView text="DESKRIPSI" android:textSize="11sp" android:textStyle="bold" android:textColor="#9CA3AF" android:letterSpacing="0.05" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
-                    <TextView android:id="@+id/tvIsiDetail" android:text="-" android:textSize="15sp" android:textColor="#374151" android:layout_marginTop="4dp" android:lineSpacingExtra="4dp" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
-
-                    <TextView text="BUKTI FOTO" android:textSize="11sp" android:textStyle="bold" android:textColor="#9CA3AF" android:letterSpacing="0.05" android:layout_marginTop="16dp" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
-                    <androidx.cardview.widget.CardView
-                        android:layout_width="match_parent"
-                        android:layout_height="200dp"
-                        android:layout_marginTop="8dp"
-                        app:cardCornerRadius="12dp"
-                        app:cardElevation="0dp">
-                        <ImageView
-                            android:id="@+id/imgBuktiDetail"
+                        <ImageView android:layout_width="20dp" android:layout_height="20dp" android:src="@drawable/ic_date" app:tint="@color/purple_500"/>
+                        <TextView
+                            android:id="@+id/tvTanggalDetail"
                             android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            android:scaleType="centerCrop"
-                            android:background="#F5F5F5"
-                            android:src="@drawable/ic_image_upload"/>
-                    </androidx.cardview.widget.CardView>
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:text="Tanggal"
+                            android:textColor="#333333" />
+                    </LinearLayout>
 
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+
+                        <ImageView android:layout_width="20dp" android:layout_height="20dp" android:src="@drawable/ic_clock" app:tint="@color/purple_500"/>
+                        <TextView
+                            android:id="@+id/tvWaktuDibuat"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:text="Waktu"
+                            android:textColor="#333333" />
+                    </LinearLayout>
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Status Terkini"
-                android:layout_marginTop="32dp"
-                android:layout_marginBottom="16dp"
-                android:textColor="#111827"
-                android:textSize="18sp"
-                android:textStyle="bold"/>
+                android:text="Alur Penanganan"
+                android:textStyle="bold"
+                android:textSize="16sp"
+                android:textColor="@color/black"
+                android:layout_marginBottom="16dp"/>
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:paddingStart="8dp">
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:layout_marginBottom="8dp">
+
+                <ImageView
+                    android:id="@+id/imgStep1"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:src="@drawable/ic_check_circle"
+                    app:tint="#E0E0E0"/>
+
+                <View
+                    android:id="@+id/line1"
+                    android:layout_width="0dp"
+                    android:layout_height="2dp"
+                    android:layout_weight="1"
+                    android:background="#E0E0E0"/>
 
                 <RelativeLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content">
-                    <View
-                        android:id="@+id/line1"
-                        android:layout_width="2dp"
-                        android:layout_height="70dp"
-                        android:background="#E5E7EB"
-                        android:layout_marginStart="15dp"
-                        android:layout_marginTop="28dp"/>
+                    android:id="@+id/containerStep2"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp">
 
                     <ImageView
-                        android:id="@+id/imgStep1"
-                        android:layout_width="32dp"
-                        android:layout_height="32dp"
-                        android:src="@drawable/ic_modern_wait"/>
-
-                    <LinearLayout
+                        android:id="@+id/imgStep2Static"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:layout_toEndOf="@id/imgStep1"
-                        android:layout_marginStart="20dp"
-                        android:layout_centerVertical="true">
-                        <TextView
-                            android:text="Laporan Dibuat"
-                            android:textStyle="bold"
-                            android:textColor="#1F2937"
-                            android:textSize="15sp"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"/>
-                        <TextView
-                            android:id="@+id/tvWaktuDibuat"
-                            android:text="Menunggu verifikasi admin"
-                            android:textColor="#6B7280"
-                            android:textSize="13sp"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"/>
-                    </LinearLayout>
-                </RelativeLayout>
-
-                <RelativeLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content">
-
-                    <View
-                        android:id="@+id/line2"
-                        android:layout_width="2dp"
-                        android:layout_height="70dp"
-                        android:background="#E5E7EB"
-                        android:layout_marginStart="15dp"
-                        android:layout_marginTop="28dp"/>
-
-                    <FrameLayout
-                        android:id="@+id/containerStep2"
-                        android:layout_width="32dp"
-                        android:layout_height="32dp">
-
-                        <ImageView
-                            android:id="@+id/imgStep2Static"
-                            android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            android:src="@drawable/ic_modern_wait" />
-
-                        <ImageView
-                            android:id="@+id/imgStep2Loading"
-                            android:layout_width="40dp"
-                            android:layout_height="40dp"
-                            android:layout_gravity="center"
-                            android:src="@drawable/ic_loading_ring"
-                            android:visibility="gone"/>
-                    </FrameLayout>
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:layout_toEndOf="@id/containerStep2"
-                        android:layout_marginStart="20dp"
-                        android:layout_centerVertical="true">
-                        <TextView
-                            android:id="@+id/tvTextStep2"
-                            android:text="Sedang Ditangani"
-                            android:textStyle="bold"
-                            android:textColor="#9CA3AF"
-                            android:textSize="15sp"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"/>
-                        <TextView
-                            android:id="@+id/tvDescStep2"
-                            android:text="Tim sedang dalam perjalanan"
-                            android:textColor="#9CA3AF"
-                            android:textSize="13sp"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"/>
-                    </LinearLayout>
-                </RelativeLayout>
-
-                <RelativeLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content">
+                        android:layout_height="match_parent"
+                        android:src="@drawable/ic_check_circle"
+                        app:tint="#E0E0E0"/>
 
                     <ImageView
-                        android:id="@+id/imgStep3"
-                        android:layout_width="32dp"
-                        android:layout_height="32dp"
-                        android:src="@drawable/ic_modern_wait"/>
-
-                    <LinearLayout
+                        android:id="@+id/imgStep2Loading"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:layout_toEndOf="@id/imgStep3"
-                        android:layout_marginStart="20dp"
-                        android:layout_centerVertical="true">
-                        <TextView
-                            android:id="@+id/tvTextStep3"
-                            android:text="Laporan Selesai"
-                            android:textStyle="bold"
-                            android:textColor="#9CA3AF"
-                            android:textSize="15sp"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"/>
-                        <TextView
-                            android:text="Penanganan telah tuntas"
-                            android:textColor="#9CA3AF"
-                            android:textSize="13sp"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"/>
-                    </LinearLayout>
+                        android:layout_height="match_parent"
+                        android:src="@drawable/ic_loading_ring"
+                        android:visibility="gone"
+                        app:tint="@color/purple_500"/>
                 </RelativeLayout>
 
+                <View
+                    android:id="@+id/line2"
+                    android:layout_width="0dp"
+                    android:layout_height="2dp"
+                    android:layout_weight="1"
+                    android:background="#E0E0E0"/>
+
+                <ImageView
+                    android:id="@+id/imgStep3"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:src="@drawable/ic_check_circle"
+                    app:tint="#E0E0E0"/>
             </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="24dp">
+
+                <TextView
+                    android:text="Terkirim"
+                    android:textSize="12sp"
+                    android:gravity="center"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"/>
+
+                <TextView
+                    android:id="@+id/tvTextStep2"
+                    android:text="Diproses"
+                    android:textSize="12sp"
+                    android:gravity="center"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:textColor="#9E9E9E"/>
+
+                <TextView
+                    android:id="@+id/tvTextStep3"
+                    android:text="Selesai"
+                    android:textSize="12sp"
+                    android:gravity="center"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:textColor="#9E9E9E"/>
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/tvDescStep2"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Menunggu petugas..."
+                android:textAlignment="center"
+                android:textStyle="italic"
+                android:textColor="#757575"
+                android:visibility="gone"
+                android:layout_marginBottom="24dp"/>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Deskripsi Lengkap"
+                android:textStyle="bold"
+                android:textSize="16sp"
+                android:layout_marginBottom="8dp"
+                android:textColor="@android:color/black"/>
+
+            <TextView
+                android:id="@+id/tvIsiDetail"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Isi laporan detail..."
+                android:lineSpacingExtra="4dp"
+                android:textSize="14sp"
+                android:textColor="#444444"
+                android:layout_marginBottom="32dp"/>
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnCekStatus"
                 android:layout_width="match_parent"
-                android:layout_height="65dp"
-                android:layout_marginTop="40dp"
-                android:text="Pantau Progres (Live)"
+                android:layout_height="55dp"
+                android:text="Proses Laporan"
+                app:cornerRadius="8dp"
                 android:textStyle="bold"
-                android:textSize="16sp"
-                app:cornerRadius="32dp"
-                app:elevation="8dp"
-                android:backgroundTint="#2563EB"/>
+                android:backgroundTint="@color/purple_500"/>
 
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
+
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

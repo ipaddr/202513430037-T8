@@ -2,67 +2,76 @@ package com.azhar.reportapps.model;
 
 import android.os.Parcel;
 import android.os.Parcelable;
+
+import androidx.room.ColumnInfo;
+import androidx.room.Entity;
+import androidx.room.PrimaryKey;
+
 import java.io.Serializable;
 
+@Entity(tableName = "tbl_laporan")
 public class ModelDatabase implements Serializable, Parcelable {
 
-    private String uid; // ID Firebase (String)
-    private String idUser; // ID Pelapor
-    private String kategori;
-    private String foto; // Nanti berisi URL Foto (Bukan Base64 lagi)
-    private String namaPelapor;
-    private String lokasi;
-    private String tanggal;
-    private String isiLaporan;
-    private String status;
-    private String telepon;
+    @PrimaryKey(autoGenerate = true)
+    public int uid;
 
-    // WAJIB ADA: Constructor Kosong untuk Firebase
-    public ModelDatabase() { }
+    @ColumnInfo(name = "key")
+    public String key;
 
-    // Getter & Setter
-    public String getUid() { return uid; }
-    public void setUid(String uid) { this.uid = uid; }
+    @ColumnInfo(name = "kategori")
+    public String kategori;
 
-    public String getIdUser() { return idUser; }
-    public void setIdUser(String idUser) { this.idUser = idUser; }
+    @ColumnInfo(name = "image")
+    public String foto;
 
-    public String getKategori() { return kategori; }
-    public void setKategori(String kategori) { this.kategori = kategori; }
+    @ColumnInfo(name = "nama")
+    public String nama;
 
-    public String getFoto() { return foto; }
-    public void setFoto(String foto) { this.foto = foto; }
+    // --- TAMBAHAN BARU ---
+    @ColumnInfo(name = "email")
+    public String email;
+    // ---------------------
 
-    public String getNamaPelapor() { return namaPelapor; }
-    public void setNamaPelapor(String namaPelapor) { this.namaPelapor = namaPelapor; }
+    @ColumnInfo(name = "lokasi")
+    public String lokasi;
 
-    public String getLokasi() { return lokasi; }
-    public void setLokasi(String lokasi) { this.lokasi = lokasi; }
+    @ColumnInfo(name = "tanggal")
+    public String tanggal;
 
-    public String getTanggal() { return tanggal; }
-    public void setTanggal(String tanggal) { this.tanggal = tanggal; }
+    @ColumnInfo(name = "isi_laporan")
+    public String isiLaporan;
 
-    public String getIsiLaporan() { return isiLaporan; }
-    public void setIsiLaporan(String isiLaporan) { this.isiLaporan = isiLaporan; }
+    @ColumnInfo(name = "telepon")
+    public String telepon;
 
-    public String getStatus() { return status; }
-    public void setStatus(String status) { this.status = status; }
+    @ColumnInfo(name = "status")
+    public String status;
 
-    public String getTelepon() { return telepon; }
-    public void setTelepon(String telepon) { this.telepon = telepon; }
+    public ModelDatabase() {
+    }
 
-    // Parcelable Implementation (Agar bisa dikirim antar Activity)
+    // Getter dan Setter untuk Email
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    // ... (Biarkan kode Parcelable di bawah ini tetap sama atau generate ulang) ...
     protected ModelDatabase(Parcel in) {
-        uid = in.readString();
-        idUser = in.readString();
+        uid = in.readInt();
+        key = in.readString();
         kategori = in.readString();
         foto = in.readString();
-        namaPelapor = in.readString();
+        nama = in.readString();
+        email = in.readString(); // Tambahkan ini
         lokasi = in.readString();
         tanggal = in.readString();
         isiLaporan = in.readString();
-        status = in.readString();
         telepon = in.readString();
+        status = in.readString();
     }
 
     public static final Creator<ModelDatabase> CREATOR = new Creator<ModelDatabase>() {
@@ -78,19 +87,44 @@ public class ModelDatabase implements Serializable, Parcelable {
     };
 
     @Override
-    public int describeContents() { return 0; }
+    public int describeContents() {
+        return 0;
+    }
 
     @Override
     public void writeToParcel(Parcel dest, int flags) {
-        dest.writeString(uid);
-        dest.writeString(idUser);
+        dest.writeInt(uid);
+        dest.writeString(key);
         dest.writeString(kategori);
         dest.writeString(foto);
-        dest.writeString(namaPelapor);
+        dest.writeString(nama);
+        dest.writeString(email); // Tambahkan ini
         dest.writeString(lokasi);
         dest.writeString(tanggal);
         dest.writeString(isiLaporan);
-        dest.writeString(status);
         dest.writeString(telepon);
+        dest.writeString(status);
     }
+
+    // Getter Setter Lama (Biarkan saja)
+    public int getUid() { return uid; }
+    public void setUid(int uid) { this.uid = uid; }
+    public String getKey() { return key; }
+    public void setKey(String key) { this.key = key; }
+    public String getKategori() { return kategori; }
+    public void setKategori(String kategori) { this.kategori = kategori; }
+    public String getFoto() { return foto; }
+    public void setFoto(String foto) { this.foto = foto; }
+    public String getNama() { return nama; }
+    public void setNama(String nama) { this.nama = nama; }
+    public String getLokasi() { return lokasi; }
+    public void setLokasi(String lokasi) { this.lokasi = lokasi; }
+    public String getTanggal() { return tanggal; }
+    public void setTanggal(String tanggal) { this.tanggal = tanggal; }
+    public String getIsiLaporan() { return isiLaporan; }
+    public void setIsiLaporan(String isiLaporan) { this.isiLaporan = isiLaporan; }
+    public String getTelepon() { return telepon; }
+    public void setTelepon(String telepon) { this.telepon = telepon; }
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
 }

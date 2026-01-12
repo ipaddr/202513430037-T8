@@ -1,7 +1,7 @@
 package com.azhar.reportapps.viewmodel;
 
 import android.app.Application;
-import android.util.Log;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
@@ -9,56 +9,70 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
 import com.azhar.reportapps.model.ModelDatabase;
-import com.google.firebase.firestore.DocumentSnapshot;
-import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.Query;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class HistoryViewModel extends AndroidViewModel {
 
     private MutableLiveData<List<ModelDatabase>> dataLaporan = new MutableLiveData<>();
-    private FirebaseFirestore db;
+    DatabaseReference databaseRef;
 
     public HistoryViewModel(@NonNull Application application) {
         super(application);
-        db = FirebaseFirestore.getInstance();
-        loadDataLaporan();
+        // Pastikan URL Database sesuai dengan punya Anda (Asia Southeast)
+        databaseRef = FirebaseDatabase.getInstance("https://siagawarga-aa282-default-rtdb.asia-southeast1.firebasedatabase.app")
+                .getReference("tbl_laporan");
+
+        loadDataHistory();
     }
 
     public LiveData<List<ModelDatabase>> getDataLaporan() {
         return dataLaporan;
     }
 
-    private void loadDataLaporan() {
-        db.collection("laporan")
-                .orderBy("tanggal", Query.Direction.DESCENDING)
-                .addSnapshotListener((value, error) -> {
-                    if (error != null) {
-                        Log.e("Firestore", "Listen failed.", error);
-                        return;
+    private void loadDataHistory() {
+        databaseRef.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                List<ModelDatabase> list = new ArrayList<>();
+                for (DataSnapshot data : snapshot.getChildren()) {
+                    ModelDatabase model = data.getValue(ModelDatabase.class);
+                    if (model != null) {
+                        model.setKey(data.getKey()); // Simpan Key Firebase
+                        list.add(model);
                     }
+                }
+                Collections.reverse(list); // Urutan terbaru paling atas
+                dataLaporan.setValue(list);
+            }
 
-                    if (value != null) {
-                        List<ModelDatabase> list = new ArrayList<>();
-                        for (DocumentSnapshot doc : value.getDocuments()) {
-                            ModelDatabase model = doc.toObject(ModelDatabase.class);
-                            if (model != null) {
-                                model.setUid(doc.getId());
-                                list.add(model);
-                            }
-                        }
-                        dataLaporan.setValue(list);
-                    }
-                });
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+                Toast.makeText(getApplication(), "Gagal memuat data", Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
-    public void deleteDataById(String uid) {
-        db.collection("laporan").document(uid).delete();
+    // UPDATE STATUS (Bisa untuk "Proses" maupun "Selesai")
+    public void updateStatusLaporan(String key, String statusBaru) {
+        if (key != null) {
+            databaseRef.child(key).child("status").setValue(statusBaru)
+                    .addOnFailureListener(e -> {
+                        Toast.makeText(getApplication(), "Gagal update status", Toast.LENGTH_SHORT).show();
+                    });
+        }
     }
 
-    public void updateStatusLaporan(String uid, String status) {
-        db.collection("laporan").document(uid).update("status", status);
+    public void deleteData(ModelDatabase modelDatabase) {
+        if (modelDatabase.getKey() != null) {
+            databaseRef.child(modelDatabase.getKey()).removeValue();
+        }
     }
 }

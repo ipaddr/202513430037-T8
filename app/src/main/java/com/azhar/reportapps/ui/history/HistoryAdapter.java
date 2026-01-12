@@ -2,12 +2,15 @@ package com.azhar.reportapps.ui.history;
 
 import android.content.Context;
 import android.content.Intent;
-import android.graphics.Color;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.util.Base64;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -16,15 +19,18 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.azhar.reportapps.R;
 import com.azhar.reportapps.model.ModelDatabase;
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
 
-import java.io.Serializable;
+import java.io.File;
+import java.io.Serializable; // PENTING: Import ini ditambahkan
 import java.util.List;
 
 public class HistoryAdapter extends RecyclerView.Adapter<HistoryAdapter.ViewHolder> {
 
     List<ModelDatabase> modelDatabase;
     Context mContext;
-    HistoryAdapterCallback mAdapterCallback; // Callback for delete action
+    HistoryAdapterCallback mAdapterCallback;
     private int lastPosition = -1;
 
     public HistoryAdapter(Context context, List<ModelDatabase> modelInput, HistoryAdapterCallback adapterCallback) {
@@ -54,40 +60,61 @@ public class HistoryAdapter extends RecyclerView.Adapter<HistoryAdapter.ViewHold
         holder.tvNamaJalan.setText(data.getLokasi());
         holder.tvDate.setText(data.getTanggal());
 
-        if (data.getIsiLaporan() != null) {
-            holder.tvDeskripsi.setText(data.getIsiLaporan());
-        } else {
-            holder.tvDeskripsi.setText("-");
+        // Rapikan isi laporan
+        String isi = data.getIsiLaporan();
+        if (isi != null && isi.contains("\n\n(Pelapor:")) {
+            isi = isi.split("\n\n\\(Pelapor:")[0];
+        }
+        holder.tvDeskripsi.setText(isi != null ? isi : "-");
+
+        // Load Foto (File Lokal / Base64 / Strip)
+        try {
+            String fotoData = data.getFoto();
+            if (fotoData == null || fotoData.equals("-") || fotoData.isEmpty()) {
+                holder.imgHistory.setImageResource(R.drawable.ic_image_upload);
+            } else if (fotoData.startsWith("/")) {
+                Glide.with(mContext)
+                        .load(new File(fotoData))
+                        .diskCacheStrategy(DiskCacheStrategy.ALL)
+                        .placeholder(R.drawable.ic_image_upload)
+                        .into(holder.imgHistory);
+            } else {
+                byte[] decodedString = Base64.decode(fotoData, Base64.DEFAULT);
+                Bitmap decodedByte = BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length);
+                holder.imgHistory.setImageBitmap(decodedByte);
+            }
+        } catch (Exception e) {
+            holder.imgHistory.setImageResource(R.drawable.ic_image_upload);
         }
 
-        // --- STATUS LOGIC ---
+        // Warna Status
         String status = data.getStatus();
-        if (status != null && status.equals("Selesai")) {
-            holder.tvStatus.setText("Selesai");
-            holder.tvStatus.setTextColor(Color.parseColor("#4CAF50")); // Green Text
-            holder.tvStatus.setBackgroundResource(R.drawable.bg_status_green);
-        } else if (status != null && (status.equals("Proses") || status.equals("Ditangani"))) {
-            holder.tvStatus.setText("Ditangani");
-            holder.tvStatus.setTextColor(Color.parseColor("#FF9800")); // Orange Text
-            holder.tvStatus.setBackgroundResource(R.drawable.bg_status_orange);
-        } else {
-            holder.tvStatus.setText("Baru");
-            holder.tvStatus.setTextColor(Color.parseColor("#2196F3")); // Blue Text
-            holder.tvStatus.setBackgroundResource(R.drawable.bg_status_blue);
+        if (status != null) {
+            holder.tvStatus.setText(status);
+            if (status.equalsIgnoreCase("Selesai")) {
+                holder.tvStatus.setBackgroundResource(R.drawable.bg_status_green);
+                holder.tvStatus.setTextColor(mContext.getResources().getColor(R.color.white));
+            } else if (status.equalsIgnoreCase("Proses")) {
+                holder.tvStatus.setBackgroundResource(R.drawable.bg_status_orange);
+                holder.tvStatus.setTextColor(mContext.getResources().getColor(R.color.white));
+            } else {
+                holder.tvStatus.setText("Baru");
+                holder.tvStatus.setBackgroundResource(R.drawable.bg_status_blue);
+                holder.tvStatus.setTextColor(mContext.getResources().getColor(R.color.white));
+            }
         }
 
-        // 1. Normal Click -> Open Detail
+        // KLIK ITEM -> BUKA DETAIL ACTIVITY
         holder.layoutItem.setOnClickListener(v -> {
             Intent intent = new Intent(mContext, DetailActivity.class);
+            // PERBAIKAN DI SINI: Cast ke (Serializable) agar tidak ambigu
             intent.putExtra("DATA_LAPORAN", (Serializable) data);
             mContext.startActivity(intent);
         });
 
-        // 2. Long Click -> Delete Action
+        // (Opsional) Klik Lama -> Hapus
         holder.layoutItem.setOnLongClickListener(v -> {
-            if (mAdapterCallback != null) {
-                mAdapterCallback.onDelete(data);
-            }
+            if (mAdapterCallback != null) mAdapterCallback.onDelete(data);
             return true;
         });
 
@@ -103,12 +130,11 @@ public class HistoryAdapter extends RecyclerView.Adapter<HistoryAdapter.ViewHold
     }
 
     @Override
-    public int getItemCount() {
-        return modelDatabase.size();
-    }
+    public int getItemCount() { return modelDatabase.size(); }
 
     public class ViewHolder extends RecyclerView.ViewHolder {
         public TextView tvKategori, tvNamaJalan, tvDate, tvDeskripsi, tvStatus;
+        public ImageView imgHistory;
         public CardView layoutItem;
 
         public ViewHolder(View itemView) {
@@ -118,11 +144,11 @@ public class HistoryAdapter extends RecyclerView.Adapter<HistoryAdapter.ViewHold
             tvDate = itemView.findViewById(R.id.tvDate);
             tvDeskripsi = itemView.findViewById(R.id.tvDeskripsi);
             tvStatus = itemView.findViewById(R.id.tvStatus);
+            imgHistory = itemView.findViewById(R.id.imgHistory);
             layoutItem = itemView.findViewById(R.id.layoutItem);
         }
     }
 
-    // Interface for delete callback
     public interface HistoryAdapterCallback {
         void onDelete(ModelDatabase modelDatabase);
     }

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1009437985544",
+    "project_id": "siagawarga-aa282",
+    "storage_bucket": "siagawarga-aa282.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1009437985544:android:f3c1db57e3a7682da87abd",
+        "android_client_info": {
+          "package_name": "com.azhar.reportapps"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDM1tWb2UKtR7orX98CM1jInudMeY-J0jU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

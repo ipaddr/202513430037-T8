@@ -10,3 +10,7 @@ buildscript {
 }
 
 // Hapus blok allprojects {} jika ada, kita pindah ke settings.gradle
+plugins {
+    // ...
+    id 'com.google.gms.google-services' version '4.4.0' apply false
+}

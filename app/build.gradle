@@ -1,20 +1,21 @@
 plugins {
     id 'com.android.application'
+    id 'com.google.gms.google-services' // Wajib untuk Firebase
 }
 
 android {
-    namespace "com.azhar.reportapps"
-    compileSdk 35
+    namespace 'com.azhar.reportapps'
+    compileSdk 34
 
     defaultConfig {
         applicationId "com.azhar.reportapps"
         minSdk 24
-        targetSdk 35
+        targetSdk 34
         versionCode 1
         versionName "1.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-        multiDexEnabled true
+        multiDexEnabled true // Mencegah crash library
     }
 
     buildTypes {
@@ -25,57 +26,45 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_17
-        targetCompatibility JavaVersion.VERSION_17
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
     }
 
     buildFeatures {
         viewBinding true
-        buildConfig true // <--- INI SOLUSINYA. Penyelamat kodingan lama.
     }
 }
 
 dependencies {
-    // --- BASIC ANDROID (Versi Java) ---
     implementation 'androidx.appcompat:appcompat:1.7.0'
     implementation 'com.google.android.material:material:1.12.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
 
-    // --- MAPS & LOCATION ---
-    implementation 'com.google.android.gms:play-services-maps:19.0.0'
-    implementation 'com.google.android.gms:play-services-location:21.3.0'
+    // --- FIREBASE (LOGIN) ---
+    implementation platform('com.google.firebase:firebase-bom:32.7.0')
+    implementation 'com.google.firebase:firebase-auth'
+    implementation 'com.google.firebase:firebase-analytics'
 
-    // --- LIFECYCLE (Versi Java) ---
-    implementation "androidx.lifecycle:lifecycle-viewmodel:2.8.4"
-    implementation "androidx.lifecycle:lifecycle-livedata:2.8.4"
+    // -----FIREBASE REALTIME FIREBASE -----
+    implementation 'com.google.firebase:firebase-database'
 
-    // --- ROOM DATABASE (Versi Java) ---
-    def room_version = "2.6.1"
-    implementation "androidx.room:room-runtime:$room_version"
-    implementation "androidx.room:room-rxjava3:$room_version"
-    annotationProcessor "androidx.room:room-compiler:$room_version"
+    // --- GOOGLE LOCATION ---
+    implementation 'com.google.android.gms:play-services-maps:18.2.0'
+    implementation 'com.google.android.gms:play-services-location:21.0.1'
 
-    // --- GLIDE (Gambar) ---
+    // --- ROOM DATABASE (PENYIMPANAN LOKAL) ---
+    implementation 'androidx.room:room-runtime:2.6.1'
+    annotationProcessor 'androidx.room:room-compiler:2.6.1'
+
+    // --- RXJAVA (UNTUK SIMPAN DATA) ---
+    implementation 'io.reactivex.rxjava3:rxandroid:3.0.0'
+    implementation 'io.reactivex.rxjava3:rxjava:3.0.0'
+
+    // --- GLIDE (UNTUK FOTO) ---
     implementation 'com.github.bumptech.glide:glide:4.16.0'
-    annotationProcessor 'com.github.bumptech.glide:compiler:4.16.0'
 
-    // --- RXJAVA ---
-    implementation 'io.reactivex.rxjava3:rxandroid:3.0.2'
-    implementation 'io.reactivex.rxjava3:rxjava:3.1.8'
-
-    // --- LIBRARY LAIN ---
-    implementation 'com.github.delight-im:Android-SimpleLocation:v1.1.0'
-    implementation 'com.karumi:dexter:6.2.3'
-
-    // --- TESTING ---
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.2.1'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.6.1'
-
-
-    implementation platform('com.google.firebase:firebase-bom:32.7.0')
-    implementation 'com.google.firebase:firebase-analytics'
-    implementation 'com.google.firebase:firebase-auth'      // Untuk Login
-    implementation 'com.google.firebase:firebase-firestore' // Untuk Database Laporan
-    implementation 'com.google.firebase:firebase-storage'   // Untuk Upload Foto
+    implementation 'com.google.firebase:firebase-firestore'
 }

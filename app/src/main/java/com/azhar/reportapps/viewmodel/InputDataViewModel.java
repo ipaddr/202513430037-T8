@@ -1,84 +1,127 @@
 package com.azhar.reportapps.viewmodel;
 
 import android.app.Application;
-import android.util.Base64;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
+import androidx.lifecycle.LiveData;
+import androidx.lifecycle.MutableLiveData;
 
+import com.azhar.reportapps.dao.DatabaseDao;
+import com.azhar.reportapps.database.DatabaseClient;
 import com.azhar.reportapps.model.ModelDatabase;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.storage.FirebaseStorage;
-import com.google.firebase.storage.StorageReference;
-import com.google.firebase.storage.UploadTask;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 
 import java.util.UUID;
 
+import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers;
+import io.reactivex.rxjava3.core.Completable;
+import io.reactivex.rxjava3.schedulers.Schedulers;
+
 public class InputDataViewModel extends AndroidViewModel {
 
-    private FirebaseFirestore db;
-    private StorageReference storageRef;
-    private FirebaseAuth mAuth;
+    private DatabaseDao databaseDao;
+    public MutableLiveData<Boolean> isSuccess = new MutableLiveData<>();
+    private MutableLiveData<Integer> notificationCount = new MutableLiveData<>();
+    private DatabaseReference databaseRef;
 
     public InputDataViewModel(@NonNull Application application) {
         super(application);
-        db = FirebaseFirestore.getInstance();
-        storageRef = FirebaseStorage.getInstance().getReference();
-        mAuth = FirebaseAuth.getInstance();
+        databaseDao = DatabaseClient.getInstance(application).getAppDatabase().databaseDao();
+        databaseRef = FirebaseDatabase.getInstance("https://siagawarga-aa282-default-rtdb.asia-southeast1.firebasedatabase.app")
+                .getReference("tbl_laporan");
+
+        listenToNotificationUpdates();
     }
 
-    public void addLaporan(final String kategori, final String base64Image,
-                           final String namaPelapor, final String lokasi,
-                           final String tanggal, final String isiLaporan,
-                           final String telepon) {
+    private void listenToNotificationUpdates() {
+        String currentUserEmail;
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        if (user != null && user.getEmail() != null) {
+            currentUserEmail = user.getEmail();
+        } else {
+            currentUserEmail = "anonymous";
+        }
 
-        Toast.makeText(getApplication(), "Mengupload foto & data...", Toast.LENGTH_SHORT).show();
+        final String finalUserEmail = currentUserEmail;
 
-        // 1. Upload Foto ke Firebase Storage
-        // Kita ubah Base64 kembali ke byte array untuk diupload
-        String path = "images/" + UUID.randomUUID().toString() + ".jpg";
-        StorageReference imageRef = storageRef.child(path);
+        databaseRef.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                int countSelesai = 0;
+                for (DataSnapshot data : snapshot.getChildren()) {
+                    ModelDatabase model = data.getValue(ModelDatabase.class);
+                    if (model != null) {
+                        // PERBAIKAN: Cek berdasarkan EMAIL, bukan Nama
+                        if (model.getEmail() != null && model.getEmail().equalsIgnoreCase(finalUserEmail)
+                                && model.getStatus() != null && model.getStatus().equalsIgnoreCase("Selesai")) {
+                            countSelesai++;
+                        }
+                    }
+                }
+                notificationCount.postValue(countSelesai);
+            }
 
-        byte[] data = Base64.decode(base64Image, Base64.DEFAULT);
-
-        UploadTask uploadTask = imageRef.putBytes(data);
-        uploadTask.addOnSuccessListener(taskSnapshot -> {
-            // 2. Ambil URL Download Foto
-            imageRef.getDownloadUrl().addOnSuccessListener(uri -> {
-                String downloadUrl = uri.toString();
-                // 3. Simpan Data ke Firestore
-                saveToFirestore(kategori, downloadUrl, namaPelapor, lokasi, tanggal, isiLaporan, telepon);
-            });
-        }).addOnFailureListener(e -> {
-            Toast.makeText(getApplication(), "Gagal upload foto: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) { }
         });
     }
 
-    private void saveToFirestore(String kategori, String fotoUrl, String nama, String lokasi, String tanggal, String isi, String telp) {
-        String uid = db.collection("laporan").document().getId(); // Generate ID unik
-        String userId = (mAuth.getCurrentUser() != null) ? mAuth.getCurrentUser().getUid() : "guest";
+    public LiveData<Integer> getLiveNotificationCount() {
+        return notificationCount;
+    }
 
-        ModelDatabase laporan = new ModelDatabase();
-        laporan.setUid(uid);
-        laporan.setIdUser(userId);
-        laporan.setKategori(kategori);
-        laporan.setFoto(fotoUrl); // Simpan URL
-        laporan.setNamaPelapor(nama);
-        laporan.setLokasi(lokasi);
-        laporan.setTanggal(tanggal);
-        laporan.setIsiLaporan(isi);
-        laporan.setTelepon(telp);
-        laporan.setStatus("Baru");
+    public void addLaporan(String kategori, String imagePath, String nama,
+                           String lokasi, String tanggal, String isi_laporan, String telepon) {
 
-        db.collection("laporan").document(uid)
-                .set(laporan)
-                .addOnSuccessListener(aVoid -> {
-                    Toast.makeText(getApplication(), "Laporan Berhasil Terkirim!", Toast.LENGTH_LONG).show();
-                })
-                .addOnFailureListener(e -> {
-                    Toast.makeText(getApplication(), "Gagal kirim data: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        ModelDatabase model = new ModelDatabase();
+        model.setKategori(kategori);
+        model.setFoto(imagePath);
+        model.setNama(nama);
+        model.setLokasi(lokasi);
+        model.setTanggal(tanggal);
+        model.setIsiLaporan(isi_laporan);
+        model.setTelepon(telepon);
+        model.setStatus("Baru");
+
+        // PERBAIKAN: Simpan Email Pelapor secara otomatis
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        if (user != null && user.getEmail() != null) {
+            model.setEmail(user.getEmail());
+        } else {
+            model.setEmail("anonymous");
+        }
+
+        String key = databaseRef.push().getKey();
+        if (key == null) key = UUID.randomUUID().toString();
+        model.setKey(key);
+
+        databaseRef.child(key).setValue(model)
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        saveToLocal(model);
+                    } else {
+                        isSuccess.setValue(false);
+                    }
                 });
+    }
+
+    private void saveToLocal(ModelDatabase model) {
+        Completable.fromAction(() -> databaseDao.insertData(model))
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(() -> isSuccess.setValue(true), throwable -> isSuccess.setValue(true));
+    }
+
+    public LiveData<java.util.List<ModelDatabase>> getAllLaporan() {
+        return databaseDao.getAllLaporan();
     }
 }

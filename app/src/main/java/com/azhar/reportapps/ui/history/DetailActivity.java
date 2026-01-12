@@ -1,9 +1,12 @@
 package com.azhar.reportapps.ui.history;
 
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Base64;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.animation.Animation;
@@ -20,10 +23,10 @@ import androidx.lifecycle.ViewModelProvider;
 
 import com.azhar.reportapps.R;
 import com.azhar.reportapps.model.ModelDatabase;
-import com.bumptech.glide.Glide;
-import com.bumptech.glide.load.engine.DiskCacheStrategy;
-import com.google.android.material.button.MaterialButton;
 import com.azhar.reportapps.viewmodel.HistoryViewModel;
+import com.google.android.material.button.MaterialButton;
+
+import java.io.File;
 
 public class DetailActivity extends AppCompatActivity {
 
@@ -31,12 +34,12 @@ public class DetailActivity extends AppCompatActivity {
     CardView cvInfoUtama;
     ImageView imgBuktiDetail;
 
-    // Komponen Timeline
+    // Komponen Timeline Status
     ImageView imgStep1, imgStep2, imgStep3;
     View line1, line2;
     TextView tvTextStep2, tvTextStep3, tvDescStep2;
 
-    // Animasi Loading
+    // Loading Animation
     View containerStep2;
     ImageView imgStep2Static, imgStep2Loading;
 
@@ -54,13 +57,10 @@ public class DetailActivity extends AppCompatActivity {
         setSupportActionBar(toolbar);
         if (getSupportActionBar() != null) {
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-            getSupportActionBar().setTitle("");
+            getSupportActionBar().setTitle("Detail Laporan");
         }
 
-        // Load animasi putar
         rotateAnimation = AnimationUtils.loadAnimation(this, R.anim.rotate_infinite);
-
-        // Inisialisasi ViewModel
         historyViewModel = new ViewModelProvider(this).get(HistoryViewModel.class);
 
         setInitLayout();
@@ -79,56 +79,54 @@ public class DetailActivity extends AppCompatActivity {
 
         imgStep1 = findViewById(R.id.imgStep1);
         line1 = findViewById(R.id.line1);
-
         containerStep2 = findViewById(R.id.containerStep2);
         imgStep2Static = findViewById(R.id.imgStep2Static);
         imgStep2Loading = findViewById(R.id.imgStep2Loading);
         tvTextStep2 = findViewById(R.id.tvTextStep2);
         tvDescStep2 = findViewById(R.id.tvDescStep2);
         line2 = findViewById(R.id.line2);
-
         imgStep3 = findViewById(R.id.imgStep3);
         tvTextStep3 = findViewById(R.id.tvTextStep3);
 
         btnCekStatus = findViewById(R.id.btnCekStatus);
 
+        // --- LOGIKA UTAMA ANIMASI PROSES LAPORAN ---
         btnCekStatus.setOnClickListener(v -> {
             if (modelDatabase == null) return;
 
-            // Animasi menghilangkan card info agar fokus ke timeline
-            cvInfoUtama.animate().alpha(0f).translationY(-100).setDuration(500).withEndAction(() -> cvInfoUtama.setVisibility(View.GONE)).start();
+            // 1. Hilangkan Info Utama (Fade Out)
+            cvInfoUtama.animate()
+                    .alpha(0f)
+                    .translationY(-100)
+                    .setDuration(600)
+                    .withEndAction(() -> cvInfoUtama.setVisibility(View.GONE))
+                    .start();
 
-            Toast.makeText(this, "Menghubungkan ke Cloud...", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Menghubungkan ke petugas...", Toast.LENGTH_SHORT).show();
             btnCekStatus.setEnabled(false);
-            btnCekStatus.setText("Memproses...");
+            btnCekStatus.setText("Sedang Memproses...");
 
-            // --- SIMULASI UPDATE STATUS KE FIREBASE ---
-
-            // TIMER 1 (5 Detik) -> Update status ke "Proses"
+            // 2. DELAY 2 DETIK: Ubah status jadi "Proses" & Animasi Step 2
             new Handler(Looper.getMainLooper()).postDelayed(() -> {
                 animateStep(2);
-                // Update di Firestore (UID String)
-                historyViewModel.updateStatusLaporan(modelDatabase.getUid(), "Proses");
-            }, 5000);
+                historyViewModel.updateStatusLaporan(modelDatabase.getKey(), "Proses");
+            }, 2000);
 
-            // TIMER 2 (15 Detik) -> Update status ke "Selesai"
+            // 3. DELAY 7 DETIK LAGI: Ubah status jadi "Selesai" & Animasi Step 3
             new Handler(Looper.getMainLooper()).postDelayed(() -> {
                 animateStep(3);
-                btnCekStatus.setText("Selesai");
-                btnCekStatus.setBackgroundColor(Color.parseColor("#10B981"));
+                btnCekStatus.setText("Laporan Selesai");
+                btnCekStatus.setBackgroundColor(Color.parseColor("#10B981")); // Hijau
 
-                // Update di Firestore (UID String)
-                historyViewModel.updateStatusLaporan(modelDatabase.getUid(), "Selesai");
+                historyViewModel.updateStatusLaporan(modelDatabase.getKey(), "Selesai");
 
-                Toast.makeText(DetailActivity.this, "Laporan Selesai & Terupdate di Server!", Toast.LENGTH_LONG).show();
-            }, 15000);
+                Toast.makeText(DetailActivity.this, "Laporan telah diselesaikan!", Toast.LENGTH_LONG).show();
+            }, 7000);
         });
     }
 
     private void setData() {
-        // Ambil data yang dikirim dari Activity sebelumnya
         modelDatabase = (ModelDatabase) getIntent().getSerializableExtra("DATA_LAPORAN");
-
         if (modelDatabase != null) {
             tvTitle.setText(modelDatabase.getKategori());
             tvLokasi.setText(modelDatabase.getLokasi());
@@ -136,27 +134,42 @@ public class DetailActivity extends AppCompatActivity {
             tvTanggal.setText(modelDatabase.getTanggal());
             tvWaktu.setText(modelDatabase.getTanggal());
 
-            // --- BAGIAN INI PENTING: LOAD FOTO DENGAN GLIDE ---
-            // Karena data 'getFoto()' sekarang adalah URL (String), bukan Base64.
-            if (modelDatabase.getFoto() != null && !modelDatabase.getFoto().isEmpty()) {
-                Glide.with(this)
-                        .load(modelDatabase.getFoto()) // Load URL dari Firebase
-                        .diskCacheStrategy(DiskCacheStrategy.ALL) // Cache agar hemat kuota
-                        .placeholder(R.drawable.ic_image_upload) // Gambar sementara loading
-                        .error(R.drawable.ic_image_upload) // Gambar jika gagal load
-                        .into(imgBuktiDetail);
+            try {
+                String fotoData = modelDatabase.getFoto();
+                if (fotoData != null && !fotoData.isEmpty() && !fotoData.equals("-")) {
+                    if (fotoData.startsWith("/")) {
+                        File imgFile = new File(fotoData);
+                        if (imgFile.exists()) {
+                            Bitmap myBitmap = BitmapFactory.decodeFile(imgFile.getAbsolutePath());
+                            imgBuktiDetail.setImageBitmap(myBitmap);
+                        } else {
+                            imgBuktiDetail.setImageResource(R.drawable.ic_image_upload);
+                        }
+                    } else {
+                        byte[] decodedString = Base64.decode(fotoData, Base64.DEFAULT);
+                        Bitmap decodedByte = BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length);
+                        imgBuktiDetail.setImageBitmap(decodedByte);
+                    }
+                } else {
+                    imgBuktiDetail.setImageResource(R.drawable.ic_image_upload);
+                }
+            } catch (Exception e) {
+                imgBuktiDetail.setImageResource(R.drawable.ic_image_upload);
             }
 
-            // Cek Status untuk mengatur tampilan timeline saat pertama dibuka
+            // Set Status Awal
             String status = modelDatabase.getStatus();
             if (status != null && status.equalsIgnoreCase("Selesai")) {
                 animateStep(3);
                 btnCekStatus.setVisibility(View.GONE);
                 cvInfoUtama.setVisibility(View.GONE);
-            } else if (status != null && (status.equalsIgnoreCase("Proses") || status.equalsIgnoreCase("Ditangani"))) {
+            } else if (status != null && status.equalsIgnoreCase("Proses")) {
                 animateStep(2);
+                cvInfoUtama.setVisibility(View.GONE);
+                btnCekStatus.setEnabled(false);
+                btnCekStatus.setText("Sedang Diproses...");
             } else {
-                animateStep(1);
+                animateStep(1); // Default
             }
         }
     }
@@ -169,7 +182,7 @@ public class DetailActivity extends AppCompatActivity {
         int colorTextInactive = Color.parseColor("#9CA3AF");
 
         if (step == 1) {
-            tvStatus.setText("Baru");
+            tvStatus.setText("Laporan Baru");
             tvStatus.setTextColor(colorBlue);
 
             imgStep1.setImageResource(R.drawable.ic_modern_check);
@@ -181,7 +194,6 @@ public class DetailActivity extends AppCompatActivity {
             imgStep2Static.setVisibility(View.VISIBLE);
             imgStep2Static.setColorFilter(colorTextInactive);
             tvTextStep2.setTextColor(colorTextInactive);
-
             line2.setBackgroundColor(colorGray);
 
         } else if (step == 2) {
@@ -196,8 +208,10 @@ public class DetailActivity extends AppCompatActivity {
             imgStep2Loading.startAnimation(rotateAnimation);
 
             tvTextStep2.setTextColor(colorTextActive);
-            tvDescStep2.setTextColor(colorBlue);
+            tvTextStep2.setText("Sedang Diproses");
+            tvDescStep2.setVisibility(View.VISIBLE);
             tvDescStep2.setText("Petugas sedang menuju lokasi...");
+            tvDescStep2.setTextColor(colorBlue);
 
         } else if (step == 3) {
             tvStatus.setText("Selesai");
@@ -208,6 +222,7 @@ public class DetailActivity extends AppCompatActivity {
 
             imgStep2Loading.clearAnimation();
             imgStep2Loading.setVisibility(View.GONE);
+
             imgStep2Static.setVisibility(View.VISIBLE);
             imgStep2Static.setImageResource(R.drawable.ic_modern_check);
             imgStep2Static.setColorFilter(null);
@@ -221,7 +236,13 @@ public class DetailActivity extends AppCompatActivity {
             tvTextStep3.setTextColor(colorTextActive);
 
             imgStep3.setScaleX(0f); imgStep3.setScaleY(0f);
-            imgStep3.animate().scaleX(1f).scaleY(1f).setInterpolator(new OvershootInterpolator()).setDuration(500).start();
+            imgStep3.animate()
+                    .scaleX(1.3f).scaleY(1.3f)
+                    .setInterpolator(new OvershootInterpolator())
+                    .setDuration(500)
+                    .withEndAction(() -> {
+                        imgStep3.animate().scaleX(1f).scaleY(1f).setDuration(200).start();
+                    }).start();
         }
     }
 

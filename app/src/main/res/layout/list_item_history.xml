@@ -4,113 +4,94 @@
     android:id="@+id/layoutItem"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginHorizontal="16dp"
-    android:layout_marginVertical="8dp"
-    android:clickable="true"
-    android:focusable="true"
-    android:foreground="?android:attr/selectableItemBackground"
-    app:cardBackgroundColor="@color/white"
-    app:cardCornerRadius="16dp"
-    app:cardElevation="2dp">
+    android:layout_margin="10dp"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="4dp">
 
-    <androidx.constraintlayout.widget.ConstraintLayout
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:padding="20dp">
+        android:orientation="horizontal"
+        android:padding="12dp">
 
         <androidx.cardview.widget.CardView
-            android:id="@+id/cvIcon"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            app:cardBackgroundColor="@color/accent_yellow"
-            app:cardCornerRadius="12dp"
-            app:cardElevation="0dp"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent">
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            app:cardCornerRadius="10dp"
+            app:cardElevation="0dp">
 
             <ImageView
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:layout_gravity="center"
-                android:src="@drawable/ic_info"
-                app:tint="@color/text_yellow" />
+                android:id="@+id/imgHistory"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="centerCrop"
+                android:src="@drawable/ic_image_upload"/>
         </androidx.cardview.widget.CardView>
 
-        <TextView
-            android:id="@+id/tvKategori"
-            android:layout_width="0dp"
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
-            android:layout_marginEnd="8dp"
-            android:text="Tawuran"
-            android:textColor="@color/text_primary"
-            android:textSize="16sp"
-            android:fontFamily="sans-serif-medium"
-            app:layout_constraintEnd_toStartOf="@+id/tvStatus"
-            app:layout_constraintStart_toEndOf="@+id/cvIcon"
-            app:layout_constraintTop_toTopOf="@+id/cvIcon" />
+            android:layout_marginStart="12dp"
+            android:orientation="vertical">
 
-        <TextView
-            android:id="@+id/tvStatus"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:background="@drawable/bg_status_blue"
-            android:paddingHorizontal="12dp"
-            android:paddingVertical="4dp"
-            android:text="Baru"
-            android:textColor="@color/status_new_text"
-            android:textSize="12sp"
-            android:fontFamily="sans-serif-medium"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
 
-        <TextView
-            android:id="@+id/tvNamaJalan"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:ellipsize="end"
-            android:maxLines="2"
-            android:text="Jl. Dahlia No. 78, RT 02/RW 04"
-            android:textColor="@color/text_primary"
-            android:textSize="14sp"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="@+id/tvKategori"
-            app:layout_constraintTop_toBottomOf="@+id/tvKategori" />
+                <TextView
+                    android:id="@+id/tvKategori"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Kategori"
+                    android:textColor="@android:color/black"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
 
-        <TextView
-            android:id="@+id/tvDeskripsi"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:ellipsize="end"
-            android:maxLines="2"
-            android:text="Tawuran antar pemuda di lapangan..."
-            android:textColor="@color/text_secondary"
-            android:textSize="14sp"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="@+id/tvKategori"
-            app:layout_constraintTop_toBottomOf="@+id/tvNamaJalan" />
+                <TextView
+                    android:id="@+id/tvDate"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="01 Jan 2024"
+                    android:textSize="12sp"
+                    android:textColor="#757575"/>
+            </LinearLayout>
 
-        <TextView
-            android:id="@+id/tvDate"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:text="6 Des 2025"
-            android:textColor="#9E9E9E"
-            android:textSize="13sp"
-            app:layout_constraintStart_toStartOf="@+id/tvKategori"
-            app:layout_constraintTop_toBottomOf="@+id/tvDeskripsi" />
+            <TextView
+                android:id="@+id/tvNamaJalan"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Lokasi Kejadian"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:textSize="14sp"
+                android:layout_marginTop="4dp"/>
 
-        <ImageView
-            android:layout_width="16dp"
-            android:layout_height="16dp"
-            android:src="@drawable/ic_launcher_foreground"
-            android:rotation="180"
-            app:tint="#BDBDBD"
-            app:layout_constraintBottom_toBottomOf="@+id/tvDate"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="@+id/tvDate" />
-    </androidx.constraintlayout.widget.ConstraintLayout>
+            <TextView
+                android:id="@+id/tvDeskripsi"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Deskripsi Laporan"
+                android:maxLines="2"
+                android:ellipsize="end"
+                android:textSize="12sp"
+                android:textColor="#757575"/>
+
+            <TextView
+                android:id="@+id/tvStatus"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/bg_status_blue"
+                android:paddingStart="12dp"
+                android:paddingTop="4dp"
+                android:paddingEnd="12dp"
+                android:paddingBottom="4dp"
+                android:text="Baru"
+                android:textColor="@android:color/white"
+                android:textSize="10sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+    </LinearLayout>
 </androidx.cardview.widget.CardView>

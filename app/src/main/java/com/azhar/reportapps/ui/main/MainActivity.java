@@ -1,47 +1,66 @@
 package com.azhar.reportapps.ui.main;
 
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.cardview.widget.CardView;
-import androidx.core.app.ActivityCompat;
-
 import android.Manifest;
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.location.Address;
 import android.location.Geocoder;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
+import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
+
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.cardview.widget.CardView;
+import androidx.core.app.ActivityCompat;
+import androidx.lifecycle.ViewModelProvider;
 
 import com.azhar.reportapps.R;
 import com.azhar.reportapps.ui.history.HistoryActivity;
 import com.azhar.reportapps.ui.report.ReportActivity;
+import com.azhar.reportapps.utils.BitmapManager;
 import com.azhar.reportapps.utils.Constant;
+import com.azhar.reportapps.view.LoginActivity;
+import com.azhar.reportapps.viewmodel.InputDataViewModel;
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationServices;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
-import im.delight.android.location.SimpleLocation;
-
 public class MainActivity extends AppCompatActivity {
 
-    int REQ_PERMISSION = 100;
-    double strCurrentLatitude;
-    double strCurrentLongitude;
-    String strCurrentLocation, strTitle;
-    SimpleLocation simpleLocation;
+    private static final int REQ_PERMISSION = 100;
+    private FusedLocationProviderClient fusedLocationClient;
 
-    CardView cvPemadam, cvAmbulance, cvBencana, cvHistory;
-    TextView tvGreeting;
+    private CardView cvSOS, cvPemadam, cvAmbulance, cvBencana;
+    private CardView cvHistory, cvProfile, cvLogout;
+    private TextView tvGreeting, tvNotifBadge;
+    private ImageView imgNotification;
+
+    private InputDataViewModel inputDataViewModel;
+    private Vibrator vibrator;
+    private boolean isSosTransaction = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -50,13 +69,48 @@ public class MainActivity extends AppCompatActivity {
 
         setStatusBar();
         setPermission();
-        setLocation();
+
+        inputDataViewModel = new ViewModelProvider(this).get(InputDataViewModel.class);
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
+        vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+
         setInitLayout();
-        setCurrentLocation();
-        setGreeting(); // Tambahan Sapaan
+        setGreeting();
+        getLocation();
+
+        // PANGGIL FUNGSI BARU
+        observeNotificationCount();
+        observeInputStatus();
     }
 
-    // --- FITUR BARU: Sapaan Waktu ---
+    private void observeInputStatus() {
+        inputDataViewModel.isSuccess.observe(this, success -> {
+            if (isSosTransaction) {
+                if (success) {
+                    Toast.makeText(this, "SOS TERKIRIM! Data masuk ke Riwayat.", Toast.LENGTH_LONG).show();
+                    isSosTransaction = false;
+                    Intent intent = new Intent(MainActivity.this, HistoryActivity.class);
+                    startActivity(intent);
+                } else {
+                    Toast.makeText(this, "Gagal mengirim SOS. Cek koneksi internet.", Toast.LENGTH_SHORT).show();
+                    isSosTransaction = false;
+                }
+            }
+        });
+    }
+
+    // --- PERBAIKAN: Mengambil jumlah notifikasi dari Firebase ---
+    private void observeNotificationCount() {
+        inputDataViewModel.getLiveNotificationCount().observe(this, count -> {
+            if (count != null && count > 0) {
+                tvNotifBadge.setVisibility(View.VISIBLE);
+                tvNotifBadge.setText(String.valueOf(count));
+            } else {
+                tvNotifBadge.setVisibility(View.GONE);
+            }
+        });
+    }
+
     private void setGreeting() {
         tvGreeting = findViewById(R.id.tvGreeting);
         Calendar calendar = Calendar.getInstance();
@@ -74,114 +128,134 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void setInitLayout() {
+        cvSOS = findViewById(R.id.cvSOS);
         cvPemadam = findViewById(R.id.cvPemadam);
         cvAmbulance = findViewById(R.id.cvAmbulance);
         cvBencana = findViewById(R.id.cvBencana);
         cvHistory = findViewById(R.id.cvHistory);
+        cvProfile = findViewById(R.id.cvProfile);
+        cvLogout = findViewById(R.id.cvLogout);
+        imgNotification = findViewById(R.id.imgNotification);
+        tvNotifBadge = findViewById(R.id.tvNotifBadge);
 
-        // --- TAMBAHAN ANIMASI MUNCUL ---
-        // Pastikan file res/anim/item_animation_fall_down.xml sudah ada (sama seperti di HistoryAdapter)
-        Animation anim1 = AnimationUtils.loadAnimation(this, R.anim.item_animation_fall_down);
-        anim1.setStartOffset(100); // Delay dikit
-        cvPemadam.startAnimation(anim1);
-
-        Animation anim2 = AnimationUtils.loadAnimation(this, R.anim.item_animation_fall_down);
-        anim2.setStartOffset(200);
-        cvAmbulance.startAnimation(anim2);
-
-        Animation anim3 = AnimationUtils.loadAnimation(this, R.anim.item_animation_fall_down);
-        anim3.setStartOffset(300);
-        cvBencana.startAnimation(anim3);
-
-        Animation anim4 = AnimationUtils.loadAnimation(this, R.anim.item_animation_fall_down);
-        anim4.setStartOffset(400);
-        cvHistory.startAnimation(anim4);
-        // -----------------------------
-
-        cvPemadam.setOnClickListener(v -> {
-            strTitle = "Laporan Kebakaran";
-            Intent intent = new Intent(MainActivity.this, ReportActivity.class);
-            intent.putExtra(ReportActivity.DATA_TITLE, strTitle);
-            startActivity(intent);
-        });
-
-        cvAmbulance.setOnClickListener(v -> {
-            strTitle = "Laporan Medis";
-            Intent intent = new Intent(MainActivity.this, ReportActivity.class);
-            intent.putExtra(ReportActivity.DATA_TITLE, strTitle);
-            startActivity(intent);
-        });
-
-        cvBencana.setOnClickListener(v -> {
-            strTitle = "Laporan Bencana Alam";
-            Intent intent = new Intent(MainActivity.this, ReportActivity.class);
-            intent.putExtra(ReportActivity.DATA_TITLE, strTitle);
-            startActivity(intent);
-        });
-
-        cvHistory.setOnClickListener(v -> {
-            Intent intent = new Intent(MainActivity.this, HistoryActivity.class);
-            startActivity(intent);
-        });
-    }
-
-    private void setLocation() {
-        simpleLocation = new SimpleLocation(this);
-        if (!simpleLocation.hasLocationEnabled()) {
-            SimpleLocation.openSettings(this);
-        }
-        strCurrentLatitude = simpleLocation.getLatitude();
-        strCurrentLongitude = simpleLocation.getLongitude();
-        strCurrentLocation = strCurrentLatitude + "," + strCurrentLongitude;
-    }
-
-    private void setCurrentLocation() {
-        Geocoder geocoder = new Geocoder(this, Locale.getDefault());
         try {
-            List<Address> addressList = geocoder.getFromLocation(strCurrentLatitude, strCurrentLongitude, 1);
-            if (addressList != null && addressList.size() > 0) {
-                Constant.lokasiPengaduan = addressList.get(0).getAddressLine(0);
+            Animation anim = AnimationUtils.loadAnimation(this, R.anim.item_animation_fall_down);
+            cvSOS.startAnimation(anim);
+        } catch (Exception e) { e.printStackTrace(); }
+
+        imgNotification.setOnClickListener(v -> {
+            Intent intent = new Intent(MainActivity.this, NotificationActivity.class);
+            startActivity(intent);
+        });
+
+        cvSOS.setOnClickListener(v -> {
+            new AlertDialog.Builder(this)
+                    .setTitle("⚠️ KONFIRMASI SOS")
+                    .setMessage("Apakah Anda dalam keadaan darurat? Lokasi Anda akan dikirim ke petugas.")
+                    .setPositiveButton("YA, KIRIM", (dialog, which) -> sendSOS())
+                    .setNegativeButton("BATAL", null)
+                    .show();
+        });
+
+        cvPemadam.setOnClickListener(v -> openReport("Laporan Kebakaran", "Kebakaran"));
+        cvAmbulance.setOnClickListener(v -> openReport("Laporan Medis", "Medis"));
+        cvBencana.setOnClickListener(v -> openReport("Laporan Bencana Alam", "Bencana"));
+
+        cvHistory.setOnClickListener(v -> startActivity(new Intent(MainActivity.this, HistoryActivity.class)));
+        cvProfile.setOnClickListener(v -> startActivity(new Intent(MainActivity.this, ProfileActivity.class)));
+
+        cvLogout.setOnClickListener(v -> {
+            new AlertDialog.Builder(this)
+                    .setTitle("Logout")
+                    .setMessage("Yakin ingin keluar?")
+                    .setPositiveButton("Ya", (dialog, which) -> {
+                        FirebaseAuth.getInstance().signOut();
+                        Intent intent = new Intent(MainActivity.this, LoginActivity.class);
+                        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                        startActivity(intent);
+                        finish();
+                    })
+                    .setNegativeButton("Batal", null)
+                    .show();
+        });
+    }
+
+    private void sendSOS() {
+        try {
+            if (vibrator != null && vibrator.hasVibrator()) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    vibrator.vibrate(VibrationEffect.createOneShot(500, VibrationEffect.DEFAULT_AMPLITUDE));
+                } else {
+                    vibrator.vibrate(500);
+                }
             }
-        } catch (IOException e) {
+        } catch (Exception e) { e.printStackTrace(); }
+
+        String namaPelapor = "Warga (Tanpa Login)";
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        if (user != null && user.getEmail() != null) namaPelapor = user.getEmail();
+
+        String imageFilePath = "";
+        try {
+            int resourceId = R.drawable.bg_bencana;
+            Bitmap bitmap = BitmapFactory.decodeResource(getResources(), resourceId);
+            if (bitmap != null) {
+                imageFilePath = BitmapManager.saveBitmapToInternalStorage(this, bitmap);
+            }
+        } catch (Exception e) {
             e.printStackTrace();
+            imageFilePath = "-";
         }
+
+        String tanggal = new SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(new Date());
+        String lokasi = (Constant.lokasiPengaduan != null && !Constant.lokasiPengaduan.isEmpty())
+                ? Constant.lokasiPengaduan
+                : "Lokasi Darurat (Koordinat GPS)";
+
+        isSosTransaction = true;
+        Toast.makeText(this, "Sedang mengirim sinyal SOS...", Toast.LENGTH_SHORT).show();
+
+        inputDataViewModel.addLaporan(
+                "SOS DARURAT",
+                imageFilePath,
+                namaPelapor,
+                lokasi,
+                tanggal,
+                "DARURAT! Butuh bantuan segera di lokasi ini.",
+                "0812-0000-SOS"
+        );
+    }
+
+    private void openReport(String title, String kategori) {
+        Intent intent = new Intent(MainActivity.this, ReportActivity.class);
+        intent.putExtra(ReportActivity.DATA_TITLE, title);
+        intent.putExtra(ReportActivity.DATA_KATEGORI, kategori);
+        startActivity(intent);
+    }
+
+    private void getLocation() {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) return;
+
+        fusedLocationClient.getLastLocation().addOnSuccessListener(this, location -> {
+            if (location != null) {
+                try {
+                    Geocoder geocoder = new Geocoder(this, Locale.getDefault());
+                    List<Address> list = geocoder.getFromLocation(location.getLatitude(), location.getLongitude(), 1);
+                    if (list != null && list.size() > 0) {
+                        Constant.lokasiPengaduan = list.get(0).getAddressLine(0);
+                    }
+                } catch (IOException e) { e.printStackTrace(); }
+            }
+        });
     }
 
     private void setPermission() {
-        if (ActivityCompat.checkSelfPermission(this,
-                Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
-                && ActivityCompat.checkSelfPermission(this,
-                Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, new String[]{
-                    Manifest.permission.ACCESS_FINE_LOCATION}, REQ_PERMISSION);
-        }
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        for (int grantResult : grantResults) {
-            if (grantResult == PackageManager.PERMISSION_GRANTED) {
-                Intent intent = getIntent();
-                finish();
-                startActivity(intent);
-            }
-        }
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == REQ_PERMISSION && resultCode == RESULT_OK) {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, REQ_PERMISSION);
         }
     }
 
     private void setStatusBar() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE |
-                    View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN);
-        }
-
         if (Build.VERSION.SDK_INT >= 21) {
             setWindowFlag(this, WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS, false);
             getWindow().setStatusBarColor(Color.TRANSPARENT);
@@ -191,24 +265,7 @@ public class MainActivity extends AppCompatActivity {
     public static void setWindowFlag(Activity activity, final int bits, boolean on) {
         Window window = activity.getWindow();
         WindowManager.LayoutParams layoutParams = window.getAttributes();
-        if (on) {
-            layoutParams.flags |= bits;
-        } else {
-            layoutParams.flags &= ~bits;
-        }
+        if (on) layoutParams.flags |= bits; else layoutParams.flags &= ~bits;
         window.setAttributes(layoutParams);
-    }
-
-    // Lifecycle SimpleLocation
-    @Override
-    protected void onResume() {
-        super.onResume();
-        if (simpleLocation != null) { simpleLocation.beginUpdates(); }
-    }
-
-    @Override
-    protected void onPause() {
-        if (simpleLocation != null) { simpleLocation.endUpdates(); }
-        super.onPause();
     }
 }
