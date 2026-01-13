@@ -2,7 +2,7 @@
 Repo Grup 8
 
 # Siaga Warga
-Aplikasi laporan kebarann, medis,bencana alam
+Aplikasi laporan kebakaran, medis,bencana alam
 kode matkul 202513430037 :INF1.62.5007 - Pemograman Sistem Bergerak
 
 # Nama Kelompok
